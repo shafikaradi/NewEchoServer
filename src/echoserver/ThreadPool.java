@@ -6,6 +6,8 @@
 package echoserver;
 
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -13,63 +15,69 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class ThreadPool{
     
-    private int numOfWorkers = 0;
-    private Worker [] workers;
-    private LinkedBlockingQueue <Runnable>queue;
-    private Worker worker;
-    
-    public ThreadPool(int numOfWorkers){
-        
-        this.numOfWorkers = numOfWorkers;
-        queue = new LinkedBlockingQueue<>();
-        workers = new Worker[4];
-        this.runAllThreads();
-        
-        
-    }
-    
-   private void runAllThreads(){
-       
-       for(int counter = 0; counter < this.numOfWorkers; counter++){
-           
-          workers[counter] =  new Worker();
-          workers[counter].start();
-          workers[counter].setName("Thread " + (counter+1));
-           
-       }
-       
-   }
-    
-    public void execute(Runnable task){
-        
-        synchronized(queue){
-            queue.add(task);
-            
-        }
-        
-    }
-    
-    
-    
-    private class Worker extends Thread{
+  
+    private PoolWorker [] thread;
+    private LinkedBlockingQueue queue;
+    private int numberOfWorkers;
 
-        private Runnable runnable;
-        @Override
-        public void run() {
-            
-           while(true){
-               
-              runnable = queue.poll();
-              
-              if(runnable != null){
-                  runnable.run();
-                  System.out.println(this.getName());
-              }
-             
-              
-           }
-        }
-        
+    public ThreadPool(int numberOfWorkers){
+
+        queue = new LinkedBlockingQueue();
+        thread = new PoolWorker[numberOfWorkers];
+        this.numberOfWorkers = numberOfWorkers;
+        this.CreateThreadPool();
     }
+
+    private void CreateThreadPool(){
+        for (int i = 0 ; i < numberOfWorkers; i++){
+
+            thread[i] = new PoolWorker();
+            thread[i].setName(String.format("Thread %d",i));
+            thread[i].start();
+
+        }
+    }
+
+
+    public  void execute(Runnable task){
+
+        synchronized(queue) {
+            queue.add(task);
+            queue.notify();
+        }
+    }
+
+
+    private class PoolWorker extends Thread{
+
+        @Override
+        public void run(){
+
+            Runnable task;
+
+            while (true){
+
+                synchronized (queue){
+                    while (queue.isEmpty()){
+
+                        try{
+                            queue.wait();
+                        }catch (Exception e){
+
+                        }
+
+                    }
+                    task = (Runnable) queue.poll();
+                }
+
+                task.run();
+
+
+            }
+
+        }
+
+    }
+
     
 }

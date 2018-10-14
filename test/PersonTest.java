@@ -4,6 +4,8 @@
  * and open the template in the editor.
  */
 
+import echoserver.ApplicationLayer;
+import echoserver.Person;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -16,32 +18,54 @@ import static org.junit.Assert.*;
  *
  * @author bsc
  */
-public class TestingTest {
+public class PersonTest {
     
-    public TestingTest() {
+    
+    private ApplicationLayer app;
+    private Person person;
+    private Person peronsPrototype;
+    public PersonTest() {
+  
     }
     
     @BeforeClass
-    public static void setUpClass() {
+    public void setUpClass() {
+         app = new ApplicationLayer();
+         peronsPrototype = new Person("Shafiq",25);
+         person = app.getPerson();
     }
     
     @AfterClass
-    public static void tearDownClass() {
+    public void tearDownClass() {
+        app = null;
+        person = null;
+        System.gc();
     }
     
     @Before
     public void setUp() {
+      
+     
        
     }
     
     @After
     public void tearDown() {
+       
     }
     
-    @Test
-      public void Test(){
+  
+      
+      @Test
+      public void TestPerson(){
+          
+          assertEquals(peronsPrototype.equals(person),true);
+          
            
-     }
+     }  
+      
+   
+      
 
 
     // TODO add test methods here.

@@ -6,6 +6,8 @@
 package echoserver;
 
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -16,19 +18,41 @@ public class Main {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
+    
+    public static void main(String[] args) throws IOException {
         // TODO code application logic here
         
+        
+        ThreadPool pool = new ThreadPool(2);
+        
+          ApplicationLayer app = new ApplicationLayer();
+          
+          pool.execute(()->{
+              app.listenToNetwork();
+          });
+          
+          pool.execute(()->{
+              app.listening();
+          });
+          
+          
+          
+    
+
+
+
+         
+
+
+       
+        
+        
+                   
+            
       
-            NetworkLayer layer = new NetworkLayer(5000);
-            
-        try {
-            layer.startToListen();
-        } catch (IOException ex) {
-            System.err.println(ex.getCause());
-            ex.printStackTrace();
-            
-        }
+
+       
+
            
      
         

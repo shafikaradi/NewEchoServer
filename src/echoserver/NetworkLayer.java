@@ -16,7 +16,10 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -25,23 +28,27 @@ import java.util.logging.Logger;
  *
  * @author bsc
  */
-public class NetworkLayer {
+public class NetworkLayer{
     
     private Selector selector;
     private ServerSocketChannel serverChannel;
-    private final ThreadPool pool;
+   // private final ThreadPool pool;
     private int port;
-    private static final Set <Integer> portSet = new HashSet<>();;
+    private static final Set <Integer> portSet = new HashSet<>();
+    private byte [] packets;
+    private List<SocketChannel> socketList;
+    
+   
     
     public NetworkLayer(int port){
         
         tryToCheckPort(port);
         this.tryToOpenSelector();
         this.tryToOpenChannel();
-        pool = new ThreadPool(3);
+        this.socketList = new ArrayList<SocketChannel>();
+        //pool = new ThreadPool(3);
        
-       
-       
+      
     }
     
     private void tryToCheckPort(int port){
@@ -56,7 +63,7 @@ public class NetworkLayer {
         
         if(portSet.contains(port)){
             
-            System.err.println("Port "+port+" is already in use");
+            System.out.println("Port "+port+" is already in use");
             throw new Exception(String.format("Port %d is already in use", port));
          
         }else{
@@ -82,7 +89,7 @@ public class NetworkLayer {
          try {
            openSelector();
         } catch (IOException ex) {
-             System.out.println(ex.getCause());
+             System.err.println(ex.getCause());
         }
     }
     
@@ -94,8 +101,8 @@ public class NetworkLayer {
            try {
             openChannel();
         } catch (IOException ex) {
-            System.err.println(ex.getCause());
-            System.err.println(ex.getMessage());
+            System.out.println(ex.getCause());
+            System.out.println(ex.getMessage());
         }
     }
     
@@ -111,29 +118,39 @@ public class NetworkLayer {
         
         System.out.println("System is starting to listen on port "+serverChannel.getLocalAddress());
         
-        Set<SelectionKey> selectedKeys;
-        Iterator<SelectionKey> keys;
-        SelectionKey key;
+        
+        
+       
                 
         while(true){
           
-            selector.select();
-            selectedKeys = selector.selectedKeys();
-            keys = selectedKeys.iterator();
+           selector.select();
+           Set<SelectionKey> selectedKeys = selector.selectedKeys();
+           Iterator<SelectionKey> keys = selectedKeys.iterator();
             
             
             while(keys.hasNext()){
-                key = (SelectionKey)keys.next();
+              SelectionKey  key = (SelectionKey)keys.next();
                 
-                
-                if(key.isAcceptable()){
-                   tryToReceiveRequest();
+               
+                if(key.isAcceptable() && key.isValid()){
+                   // pool.execute(()->{ 
+                     tryToReceiveRequest();
+                    
+                    //});
                 }
+               
               
-                if(key.isReadable()){
-                  tryToListenToClient(key);
-                }
                 
+                  if(key.isReadable() && key.isValid()){
+                      // pool.execute(()->{
+                        tryToListenToClient(key);
+                      
+                       //});
+                  }
+                
+               
+               
 //                if(key.isWritable()){
 //                    
 //                
@@ -151,17 +168,20 @@ public class NetworkLayer {
     }
      
      
-     private void receiveRequest() throws IOException{
+     private void registerClient() throws IOException{
          
-         SocketChannel channel = serverChannel.accept();
-         channel.configureBlocking(false);
-         channel.register(selector, SelectionKey.OP_READ);
+         SocketChannel client = serverChannel.accept();
+         client.configureBlocking(false);
+         client.register(selector, SelectionKey.OP_READ);
+         
+         
+        
      }
      
     private void tryToReceiveRequest(){
          
         try {
-            receiveRequest();
+            registerClient();
         } catch (IOException ex) {
            System.out.println(ex.getCause());
         }
@@ -169,35 +189,47 @@ public class NetworkLayer {
      }
       
       private void listenToClient(SelectionKey key) throws IOException{
-          
+       
+      
           SocketChannel client = (SocketChannel) key.channel();
-          client.register(selector, SelectionKey.OP_READ);
-          ByteBuffer buffer = ByteBuffer.allocate(256);
-          client.read(buffer);
-          byte [] data = buffer.array();
+          socketList.add(client);
+             System.out.print("mw "+socketList.size());
+         key.cancel();
           
-          String str = new String(data,"UTF-16").trim();
-          System.out.println(str);
-          terminateConnectionWithClient(client,str);
       }
       
-      private void terminateConnectionWithClient( SocketChannel client,String trminateComment) throws IOException{
-          if(trminateComment.equals("Bye Bye")){
-              
-              client.close();
-              System.out.println("Connection is terminated");
-              
-          }
-      }
+   
       
       private void tryToListenToClient(SelectionKey key){
           
         try {
             listenToClient(key);
         } catch (IOException ex) {
-           System.out.println(ex.getCause());
+           System.err.println(ex.getCause());
         }
       }
+
+    
+    public byte [] packets() {
+       return packets;
+    }
+    
+   
+    
+    @Override
+    public void finalize(){
+        
+        portSet.remove(port);
+        System.out.println(String.format("Port %d is now available",port));
+       
+    }
+    
+    
+    public ArrayList getSockets(){
+       
+        return (ArrayList) socketList;
+    }
+    
       
    
  

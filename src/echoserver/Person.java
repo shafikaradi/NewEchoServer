@@ -5,6 +5,10 @@
  */
 package echoserver;
 
+import java.io.UnsupportedEncodingException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * @author bsc
@@ -21,6 +25,10 @@ public class Person {
         this.name = name;
         this.age = age;
         bytes = new byte[4];
+    }
+
+    Person() {
+    
     }
     
     public String getName() {
@@ -39,25 +47,46 @@ public class Person {
         this.age = age;
     }
     
-    public byte[] serilizeAge(){
+    public int getNameLength(){
+        return this.lengthOfName;
+    }
+     
+    public int deserializeAge(byte [] bytes){
         
-       bytes[0] =  (byte) (age & 0xFF);
-       bytes[1] =  (byte) (age & 0xFF >> 8);
-       bytes[2] =  (byte) (age & 0xFF >> 16);
-       bytes[3] =  (byte) (age & 0xFF >> 24);
-       
-       return bytes; 
+        this.age = (int) (bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24));
+        return this.age; 
     }
     
-    public static byte[] dserilizeAge(int age){
+     public int deserializeNameLength(byte [] bytes){
         
-       byte bytes[] = new byte[4];
-       bytes[0] =  (byte) (age & 0xFF);
-       bytes[1] =  (byte) ((age & 0xFF) >> 8);
-       bytes[2] =  (byte) ((age & 0xFF) >> 16);
-       bytes[3] =  (byte) ((age & 0xFF) >> 24);
-       
-       return bytes; 
+        this.lengthOfName = (int) (bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24));
+        return this.lengthOfName; 
+    }
+    
+    public String deserializeName(byte [] bytes){
+        
+        try {
+            this.name = new String(bytes,"UTF-16");
+            return this.name;
+        } catch (UnsupportedEncodingException ex) {
+           System.err.println(ex.getMessage());
+        }
+        
+        return "NOt known";
+    }
+    
+    @Override
+    public String toString(){
+        return String.format("Person's name is %s and his age is %d", name,age);
+    }
+    
+    
+    public boolean equals(Person person){
+        
+        if(this.age == person.age && this.name.equals(name))
+            return true;
+                    
+        return false;
     }
 
 }
